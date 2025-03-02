@@ -1,0 +1,85 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+// Define ultrasonic sensor pins for Road 1
+#define TRIG1 6
+#define ECHO1 7
+
+// Define ultrasonic sensor pins for Road 2
+#define TRIG2 8
+#define ECHO2 9
+
+// Define streetlight pins
+#define STREETLIGHT_1 10
+#define STREETLIGHT_2 11
+
+// Define MQ135 sensor pin
+#define MQ135_PIN A0
+
+// Initialize LCD (16x2) with I2C address 0x27
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+void setup() {
+    Serial.begin(9600);
+
+    // Initialize ultrasonic sensors
+    pinMode(TRIG1, OUTPUT);
+    pinMode(ECHO1, INPUT);
+    pinMode(TRIG2, OUTPUT);
+    pinMode(ECHO2, INPUT);
+
+    // Initialize streetlights as output
+    pinMode(STREETLIGHT_1, OUTPUT);
+    pinMode(STREETLIGHT_2, OUTPUT);
+
+    // Initialize LCD
+    lcd.init();
+    lcd.backlight();
+}
+
+// Function to get distance from ultrasonic sensor
+long getDistance(int trigPin, int echoPin) {
+    digitalWrite(trigPin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(trigPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPin, LOW);
+
+    long duration = pulseIn(echoPin, HIGH);
+    return duration * 0.034 / 2; // Convert to cm
+}
+
+void loop() {
+    // Read distance from both ultrasonic sensors
+    long distance1 = getDistance(TRIG1, ECHO1);
+    long distance2 = getDistance(TRIG2, ECHO2);
+
+    Serial.print("Road 1 Distance: "); Serial.print(distance1); Serial.println(" cm");
+    Serial.print("Road 2 Distance: "); Serial.print(distance2); Serial.println(" cm");
+
+    // Turn on streetlight if vehicle is detected within 45cm, otherwise turn off
+    digitalWrite(STREETLIGHT_1, (distance1 > 0 && distance1 <= 45) ? HIGH : LOW);
+    digitalWrite(STREETLIGHT_2, (distance2 > 0 && distance2 <= 45) ? HIGH : LOW);
+
+    if (distance1 > 0 && distance1 <= 45) Serial.println("Streetlight 1 ON");
+    if (distance2 > 0 && distance2 <= 45) Serial.println("Streetlight 2 ON");
+
+    // Read AQI sensor value
+    int air_quality = analogRead(MQ135_PIN);  // Read MQ135 sensor value
+    float ppm = (air_quality / 1023.0) * 500;  // Convert to approximate PPM
+
+    // Display Air Quality on LCD
+    lcd.clear();  // Clear the LCD screen
+    lcd.setCursor(0, 0);
+    lcd.print("AQI");
+    lcd.setCursor(0, 1);
+    lcd.print(ppm);
+    lcd.print(" AQI");
+
+    // Debugging output
+    Serial.print("Air Quality: ");
+    Serial.print(ppm);
+    Serial.println(" AQI");
+
+    delay(500); // Small delay to prevent excessive looping
+}
