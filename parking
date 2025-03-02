@@ -1,0 +1,63 @@
+m#include <Servo.h>
+
+// Pin definitions
+const int irSensorPin = 7;  // Pin for IR sensor
+const int servoPin = 9;      // Pin for Servo motor
+
+// Create Servo object
+Servo myServo;
+
+// Variables
+int carCount = 0;        // Variable to store number of cars
+int totalSlots = 10;     // Total number of parking slots
+int freeSlots = totalSlots; // Initial free slots
+
+void setup() {
+  // Initialize serial communication
+  Serial.begin(9600);
+  
+  // Initialize the IR sensor pin
+  pinMode(irSensorPin, INPUT);
+  
+  // Attach the servo to the specified pin
+  myServo.attach(servoPin);
+  
+  // Initially, the servo motor should be at 0 degrees
+  myServo.write(0);
+}
+
+void loop() {
+  // Read the IR sensor value
+  int sensorValue = digitalRead(irSensorPin);
+  
+  // Check if the car has entered (sensor detects car)
+  if (sensorValue == HIGH) {
+    // If car is detected, increase the car count and move servo by 90 degrees
+    if (freeSlots > 0) {
+      freeSlots--;          // Decrease the free slot count
+      carCount++;           // Increase the car count
+      
+      // Move servo by 90 degrees
+      myServo.write(90);
+      delay(1000);          // Wait for 1 second to keep the servo at 90 degrees
+      
+      // Move servo back to 0 degrees
+      myServo.write(0);
+      
+      // Print the number of free slots on the serial monitor
+      Serial.print("Car entered. Free slots: ");
+      Serial.println(freeSlots);
+      
+      delay(1000);  // Debounce delay for the IR sensor
+    }
+  }
+  
+  // If car leaves, increase the free slots count
+  if (sensorValue == LOW && freeSlots < totalSlots) {
+    freeSlots++;  // Increase the free slot count
+    Serial.print("Car left. Free slots: ");
+    Serial.println(freeSlots);
+    
+    delay(1000);  // Debounce delay for the IR sensor
+  }
+}
